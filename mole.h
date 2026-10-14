@@ -17,6 +17,16 @@
 #define BUILD_DIR    "/var/cache/pkg/build"
 #define CONFIG_FILE  "/etc/pkg/config"
 
+/* colors — earthy mole theme */
+#define C_RESET  "\033[0m"
+#define C_BOLD   "\033[1m"
+#define C_DIM    "\033[2m"
+#define C_RED    "\033[31m"
+#define C_GREEN  "\033[32m"
+#define C_BROWN  "\033[38;5;137m"  /* warm brown — actions */
+#define C_DIRT   "\033[38;5;95m"   /* dark brown — secondary */
+#define C_AMBER  "\033[38;5;214m"  /* amber — building/progress */
+
 #define MAX_DEPS     64
 #define MAX_NAME     128
 #define MAX_PATH     2048
@@ -57,6 +67,7 @@ int build_compile(const struct recipe *r, const struct config *cfg);
 int build_stage(const struct recipe *r, const struct config *cfg);
 
 /* deps.c */
+int find_recipe(const char *name, const struct config *cfg, char *out, size_t outsz);
 int deps_resolve(const char *name, const struct config *cfg);
 int deps_check_cycle(const char *name, const char **stack, int depth);
 int deps_reverse(const char *name);
@@ -71,6 +82,9 @@ int den_list(void);
 int den_info(const char *name);
 int den_owns(const char *path);
 char *den_get_version(const char *name);
+char *den_get_hash(const char *name);
+int den_write_hash(const char *name, const char *hash);
+int util_get_source_hash(const struct recipe *r, char *out, size_t outsz);
 
 /* util.c */
 int util_run(const char *cmd);
