@@ -30,6 +30,42 @@ den_get_version(const char *name)
 	return ver;
 }
 
+char *
+den_get_hash(const char *name)
+{
+	static char hash[MAX_NAME];
+	char path[MAX_PATH];
+	FILE *fp;
+
+	snprintf(path, sizeof(path), "%s/%s/hash", DEN_DIR, name);
+	fp = fopen(path, "r");
+	if (!fp)
+		return NULL;
+
+	if (!fgets(hash, sizeof(hash), fp)) {
+		fclose(fp);
+		return NULL;
+	}
+	fclose(fp);
+	hash[strcspn(hash, "\n")] = '\0';
+	return hash;
+}
+
+int
+den_write_hash(const char *name, const char *hash)
+{
+	char path[MAX_PATH];
+	FILE *fp;
+
+	snprintf(path, sizeof(path), "%s/%s/hash", DEN_DIR, name);
+	fp = fopen(path, "w");
+	if (!fp)
+		return -1;
+	fprintf(fp, "%s\n", hash);
+	fclose(fp);
+	return 0;
+}
+
 int
 den_record(const char *name, const char *version, const struct recipe *r,
            const char *stagedir)
@@ -121,7 +157,7 @@ den_remove_internal(const char *name, int quiet)
 	util_rm_rf(den_path);
 
 	if (!quiet)
-		printf("  removed %s (%d files)\n", name, count);
+		printf("  " C_RED "removed" C_RESET " %s (%d files)\n", name, count);
 	return 0;
 }
 
