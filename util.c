@@ -179,3 +179,52 @@ config_parse(const char *path, struct config *cfg)
 	fclose(fp);
 	return 0;
 }
+
+int
+util_get_source_hash(const struct recipe *r, char *out, size_t outsz)
+{
+	char cmd[MAX_CMD];
+	char line[MAX_LINE];
+	FILE *fp;
+	const char *src;
+
+	/* for local: sources, get git HEAD if it's a git repo */
+	if (strncmp(r->source, "local:", 6) == 0) {
+		src = r->source + 6;
+		snprintf(cmd, sizeof(cmd),
+		         "git -C '%s' rev-parse HEAD 2>/dev/null", src);
+		fp = popen(cmd, "r");
+		if (fp && fgets(line, sizeof(line), fp)) {
+			line[strcspn(line, "\n")] = '\0';
+			if (strlen(line) >= 7) {
+				snprintf(out, outsz, "%s", line);
+				pclose(fp);
+				return 0;
+			}
+		}
+		if (fp) pclose(fp);
+
+		/* not a git repo, use mtime of Makefile as fallback */
+		snprintf(cmd, sizeof(cmd),
+		         "stat -c %%Y '%s/Makefile' 2>/dev/null || stat -f %%m '%s/Makefile' 2>/dev/null",
+		         src, src);
+		fp = popen(cmd, "r");
+		if (fp && fgets(line, sizeof(line), fp)) {
+			line[strcspn(line, "\n")] = '\0';
+			snprintf(out, outsz, "mtime:%s", line);
+			pclose(fp);
+			return 0;
+		}
+		if (fp) pclose(fp);
+	}
+
+	/* for git: sources, same as local but path would be build dir */
+	if (strncmp(r->source, "git:", 4) == 0) {
+		snprintf(out, outsz, "git");
+		return 0;
+	}
+
+	/* for remote sources, version is the hash */
+	snprintf(out, outsz, "%s", r->version);
+	return 0;
+}
