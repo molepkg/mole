@@ -1,7 +1,6 @@
 #include "mole.h"
 
-/* find a recipe file in the warren */
-static int
+int
 find_recipe(const char *name, const struct config *cfg, char *out, size_t outsz)
 {
 	char path[MAX_PATH];
@@ -52,7 +51,7 @@ resolve_recursive(const char *name, const struct config *cfg,
 
 	/* already installed — skip */
 	if (den_is_installed(name)) {
-		printf("  -> %s (already installed)\n", name);
+		printf("  -> %s " C_DIRT "(already installed)" C_RESET "\n", name);
 		return 0;
 	}
 
@@ -77,7 +76,7 @@ resolve_recursive(const char *name, const struct config *cfg,
 	}
 
 	/* print dep chain */
-	printf("  -> %s %s\n", r.name, r.version);
+	printf("  -> " C_BROWN "%s" C_RESET " %s\n", r.name, r.version);
 
 	/* build and install */
 	ret = build_install(&r, cfg);
