@@ -59,11 +59,11 @@ build_fetch_source(const struct recipe *r)
 
 	/* skip if already cached */
 	if (access(dst, F_OK) == 0) {
-		printf("     cached     %s\n", source_filename(r));
+		printf("     " C_DIRT "cached" C_RESET "     %s\n", source_filename(r));
 		return 0;
 	}
 
-	printf("     fetching   %s\n", source_filename(r));
+	printf("     " C_BROWN "fetching" C_RESET "   %s\n", source_filename(r));
 	snprintf(cmd, sizeof(cmd), "curl -sfL -o '%s' '%s'", dst, source_url(r));
 	return util_run(cmd);
 }
@@ -82,20 +82,20 @@ build_verify(const struct recipe *r)
 
 	snprintf(dst, sizeof(dst), "%s/%s", SOURCE_DIR, source_filename(r));
 
-	printf("     verifying  sha256");
+	printf("     " C_DIRT "verifying" C_RESET "  sha256");
 	if (util_sha256_file(dst, hash) != 0) {
-		printf(" FAILED (could not hash)\n");
+		printf(" " C_RED "FAILED" C_RESET " (could not hash)\n");
 		return -1;
 	}
 
 	if (strcmp(hash, r->sha256) != 0) {
-		printf(" FAILED\n");
+		printf(" " C_RED "FAILED" C_RESET "\n");
 		fprintf(stderr, "     expected: %s\n", r->sha256);
 		fprintf(stderr, "     got:      %s\n", hash);
 		return -1;
 	}
 
-	printf(" ok\n");
+	printf(" " C_GREEN "ok" C_RESET "\n");
 	return 0;
 }
 
@@ -114,7 +114,7 @@ build_extract(const struct recipe *r)
 	util_mkdir_p(builddir);
 
 	snprintf(src, sizeof(src), "%s/%s", SOURCE_DIR, source_filename(r));
-	printf("     extracting %s\n", source_filename(r));
+	printf("     " C_DIRT "extracting" C_RESET " %s\n", source_filename(r));
 
 	/* extract and strip one leading directory component */
 	snprintf(cmd, sizeof(cmd),
@@ -185,7 +185,7 @@ draw_progress(int compiled, int total, int elapsed)
 	format_time(elapsed, timebuf, sizeof(timebuf));
 
 	/* line 1: stats */
-	printf("\r\033[K     building   %d/%d compiled, %s", compiled, total, timebuf);
+	printf("\r\033[K     " C_AMBER "building" C_RESET "   %d/%d compiled, " C_DIM "%s" C_RESET, compiled, total, timebuf);
 	/* line 2: progress bar */
 	printf("\n\033[K     ");
 	if (total > 0) {
@@ -193,10 +193,10 @@ draw_progress(int compiled, int total, int elapsed)
 		if (pct > 1.0f) pct = 1.0f;
 		filled = (int)(pct * barwidth);
 
-		printf("[");
+		printf(C_DIM "[" C_RESET);
 		for (i = 0; i < barwidth; i++)
-			putchar(i < filled ? '#' : '-');
-		printf("]");
+			printf(i < filled ? C_AMBER "#" C_RESET : C_DIM "-" C_RESET);
+		printf(C_DIM "]" C_RESET);
 	}
 	/* move cursor back up one line */
 	printf("\033[A");
@@ -260,13 +260,13 @@ build_compile(const struct recipe *r, const struct config *cfg)
 		format_time((int)(time(NULL) - start), timebuf, sizeof(timebuf));
 		/* clear stats line and bar line */
 		printf("\r\033[K\033[B\033[K\033[A");
-		printf("\r     built      %d compiled in %s\033[?25h\n", compiled, timebuf);
+		printf("\r     " C_GREEN "built" C_RESET "      %d compiled in " C_DIM "%s" C_RESET "\033[?25h\n", compiled, timebuf);
 	}
 
 	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
 		ret = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
 		/* dump last 20 lines on failure */
-		printf("\033[?25h\n     BUILD FAILED -- last 20 lines:\n");
+		printf("\033[?25h\n     " C_RED "BUILD FAILED" C_RESET " -- last 20 lines:\n");
 		printf("     -------\n");
 		snprintf(cmd, sizeof(cmd), "tail -20 '%s' | sed 's/^/     /'", logfile);
 		util_run(cmd);
@@ -314,7 +314,7 @@ build_stage(const struct recipe *r, const struct config *cfg)
 			count++;
 		pclose(fp);
 	}
-	printf("     staging    %d files\n", count);
+	printf("     " C_DIRT "staging" C_RESET "    %d files\n", count);
 
 	return 0;
 }
@@ -370,11 +370,18 @@ build_install(const struct recipe *r, const struct config *cfg)
 		return ret;
 	}
 
+	/* store source hash for change detection */
+	{
+		char hash[MAX_NAME];
+		if (util_get_source_hash(r, hash, sizeof(hash)) == 0)
+			den_write_hash(r->name, hash);
+	}
+
 	/* cleanup build dir (keep sources cached) */
 	snprintf(builddir, sizeof(builddir), "%s/%s", BUILD_DIR, r->name);
 	util_rm_rf(builddir);
 	util_rm_rf(stagedir);
 
-	printf("     installed  %s %s\n", r->name, r->version);
+	printf("     " C_GREEN "installed" C_RESET "  %s %s\n", r->name, r->version);
 	return 0;
 }
